@@ -28,14 +28,14 @@ params.First_Alignment_Collapse_AIRRseq.ncores = 20
 
 // Process Parameters for Undocumented_Alleles_Light:
 params.Undocumented_Alleles_Light.num_threads = params.nproc
-params.Undocumented_Alleles_Light.germline_min = 1
-params.Undocumented_Alleles_Light.min_seqs = 1
+params.Undocumented_Alleles_Light.germline_min = 20
+params.Undocumented_Alleles_Light.min_seqs = 7
 params.Undocumented_Alleles_Light.auto_mutrange = "true"
 params.Undocumented_Alleles_Light.mut_range = "1:10"
 params.Undocumented_Alleles_Light.y_intercept = 0.125
 params.Undocumented_Alleles_Light.alpha = 0.05
-params.Undocumented_Alleles_Light.j_max = 1
-params.Undocumented_Alleles_Light.min_frac = 0
+params.Undocumented_Alleles_Light.j_max = 0.15
+params.Undocumented_Alleles_Light.min_frac = 0.75
 
 
 // part 3
