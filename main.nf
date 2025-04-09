@@ -1443,6 +1443,7 @@ outname_selected = airrFile.toString() - '.tsv' +"_to_piglet"
 library(data.table)
 library(stringr)
 library(tigger)
+library(dplyr)
 
 # Read inputs
 airr_file <- "${airrFile}"
@@ -1470,9 +1471,14 @@ reference <- data.table(
   allele_changed = names(reference)
 )
 
+# Replacement function without regex (safe for Nextflow)
 replace_exact <- function(dt, col, id_from, id_to) {
-  pattern <- sprintf("(?<=^|,)(%s)(?=,|\$)", str_replace_all(id_from, "([*+?.^\$(){}|\\[\\]\\\\])", "\\\\\\1"))
-  dt[grepl(pattern, get(col)), (col) := str_replace_all(get(col), pattern, id_to)]
+  dt[, (col) := vapply(.SD[[1]], function(val) {
+    if (is.na(val)) return(NA_character_)
+    parts <- str_split(val, ",")[[1]]
+    parts <- ifelse(parts == id_from, id_to, parts)
+    str_c(parts, collapse = ",")
+  }, character(1L)), .SDcols = col]
 }
 
 # Apply changes for a given file and target column
@@ -1487,7 +1493,9 @@ apply_changes <- function(file, dt, col, ref_col = "allele", ref_out_col = "alle
     to   <- if (reverse) changes[i, old_id] else changes[i, new_id]
     replace_exact(dt, col, from, to)
     replace_exact(reference, ref_col, from, to)
-    if (ref_out_col != ref_col) replace_exact(reference, ref_out_col, from, to)
+    if (ref_out_col != ref_col) {
+      replace_exact(reference, ref_out_col, from, to)
+    }
   }
 }
 
@@ -1510,16 +1518,16 @@ apply_changes("j_changes.csv", data, "j_call_changed")
 data[, j_call := j_call_changed]
 
 # Final outputs
-write.table(data, sep = "\t", file = paste0(outname, ".tsv"), row.names = FALSE)
+write.table(data, sep = "\t", file = paste0(outname, ".tsv"), row.names = FALSE, quote = FALSE)
 
 selected_cols <- if (chain == "IGH") {
   c("sequence_id", "v_call", "d_call", "j_call")
 } else {
   c("sequence_id", "v_call", "j_call")
 }
-fwrite(data[, ..selected_cols], sep = "\t", file = paste0(outname_selected, ".tsv"))
+fwrite(data[, ..selected_cols], sep = "\t", file = paste0(outname_selected, ".tsv"), quote = FALSE)
 
-fwrite(reference, sep = "\t", file = paste0(outname, "_reference.tsv"))
+fwrite(reference, sep = "\t", file = paste0(outname, "_reference.tsv"), quote = FALSE)
 """
 
 }
