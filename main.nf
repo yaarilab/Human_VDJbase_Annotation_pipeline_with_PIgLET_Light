@@ -185,6 +185,210 @@ with open(file_path, 'w'):
 }    
 }
 
+
+process make_igblast_annotate_j {
+
+input:
+ set val(db_name), file(germlineFile) from g_120_germlineFastaFile0_g_114
+
+output:
+ file aux_file  into g_114_outputFileTxt0_g111_9, g_114_outputFileTxt0_g126_9
+
+script:
+
+
+
+aux_file = "J.aux"
+
+"""
+annotate_j ${germlineFile} ${aux_file}
+"""
+}
+
+
+process Second_Alignment_J_MakeBlastDb {
+
+input:
+ set val(db_name), file(germlineFile) from g_120_germlineFastaFile0_g126_17
+
+output:
+ file "${db_name}"  into g126_17_germlineDb0_g126_9
+
+script:
+
+if(germlineFile.getName().endsWith("fasta")){
+	"""
+	sed -e '/^>/! s/[.]//g' ${germlineFile} > tmp_germline.fasta
+	mkdir -m777 ${db_name}
+	makeblastdb -parse_seqids -dbtype nucl -in tmp_germline.fasta -out ${db_name}/${db_name}
+	"""
+}else{
+	"""
+	echo something if off
+	"""
+}
+
+}
+
+
+process First_Alignment_J_MakeBlastDb {
+
+input:
+ set val(db_name), file(germlineFile) from g_120_germlineFastaFile0_g111_17
+
+output:
+ file "${db_name}"  into g111_17_germlineDb0_g111_9
+
+script:
+
+if(germlineFile.getName().endsWith("fasta")){
+	"""
+	sed -e '/^>/! s/[.]//g' ${germlineFile} > tmp_germline.fasta
+	mkdir -m777 ${db_name}
+	makeblastdb -parse_seqids -dbtype nucl -in tmp_germline.fasta -out ${db_name}/${db_name}
+	"""
+}else{
+	"""
+	echo something if off
+	"""
+}
+
+}
+
+
+process V_names_fasta {
+
+publishDir params.outdir, mode: 'copy', saveAs: {filename -> if (filename =~ /.*changes..*$/) "genomic_novel_changes/$filename"}
+input:
+ set val(name), file(v_ref) from g_2_germlineFastaFile_g_116
+
+output:
+ set val("v_ref"), file("new_V*")  into g_116_germlineFastaFile0_g_131, g_116_germlineFastaFile0_g111_22, g_116_germlineFastaFile0_g111_12
+ file "*changes.*"  into g_116_csvFile1_g_124
+
+
+script:
+
+readArray_v_ref = v_ref.toString().split(' ')[0]
+
+if(readArray_v_ref.endsWith("fasta")){
+
+"""
+#!/usr/bin/env python3 
+
+import pandas as pd
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio import SeqIO
+from hashlib import sha256 
+
+
+def fasta_to_dataframe(file_path):
+    data = {'ID': [], 'Sequence': []}
+    with open(file_path, 'r') as file:
+        for record in SeqIO.parse(file, 'fasta'):
+            data['ID'].append(record.id)
+            data['Sequence'].append(str(record.seq))
+
+        df = pd.DataFrame(data)
+        return df
+
+
+file_path = '${readArray_v_ref}'  # Replace with the actual path
+df = fasta_to_dataframe(file_path)
+
+index_counter = 30  # Start index
+
+for index, row in df.iterrows():
+    if '_' in row['ID']:
+        print(row['ID'])
+        parts = row['ID'].split('*')
+        row['ID'] = f"{parts[0]}*{index_counter}"
+        # df.at[index, 'ID'] = row['ID']  # Update DataFrame with the new value
+        index_counter += 1
+        
+        
+        
+def dataframe_to_fasta(df, output_file, description_column='Description', default_description=''):
+    records = []
+
+    for index, row in df.iterrows():
+        sequence_record = SeqRecord(Seq(row['Sequence']), id=row['ID'])
+
+        # Use the description from the DataFrame if available, otherwise use the default
+        description = row.get(description_column, default_description)
+        sequence_record.description = description
+
+        records.append(sequence_record)
+
+    with open(output_file, 'w') as output_handle:
+        SeqIO.write(records, output_handle, 'fasta')
+
+def save_changes_to_csv(old_df, new_df, output_file):
+    changes = []
+    for index, (old_row, new_row) in enumerate(zip(old_df.itertuples(), new_df.itertuples()), 1):
+        if old_row.ID != new_row.ID:
+            changes.append({'Row': index, 'Old_ID': old_row.ID, 'New_ID': new_row.ID})
+    
+    changes_df = pd.DataFrame(changes)
+    if not changes_df.empty:
+        changes_df.to_csv(output_file, index=False)
+    else:
+    	df = pd.DataFrame(list())
+    	df.to_csv('v_changes.txt')
+    	
+output_file_path = 'new_V.fasta'
+
+dataframe_to_fasta(df, output_file_path)
+
+
+file_path = '${readArray_v_ref}'  # Replace with the actual path
+old_df = fasta_to_dataframe(file_path)
+
+output_csv_file = "v_changes.csv"
+save_changes_to_csv(old_df, df, output_csv_file)
+
+"""
+} else{
+	
+"""
+#!/usr/bin/env python3 
+	
+
+file_path = 'new_V.txt'
+
+with open(file_path, 'w'):
+    pass
+    
+"""    
+}    
+}
+
+
+process First_Alignment_V_MakeBlastDb {
+
+input:
+ set val(db_name), file(germlineFile) from g_116_germlineFastaFile0_g111_22
+
+output:
+ file "${db_name}"  into g111_22_germlineDb0_g111_9
+
+script:
+
+if(germlineFile.getName().endsWith("fasta")){
+	"""
+	sed -e '/^>/! s/[.]//g' ${germlineFile} > tmp_germline.fasta
+	mkdir -m777 ${db_name}
+	makeblastdb -parse_seqids -dbtype nucl -in tmp_germline.fasta -out ${db_name}/${db_name}
+	"""
+}else{
+	"""
+	echo something if off
+	"""
+}
+
+}
+
 g_3_germlineFastaFile_g_122= g_3_germlineFastaFile_g_122.ifEmpty([""]) 
 
 
@@ -298,135 +502,6 @@ with open(file_path, 'w'):
 }
 
 
-process V_names_fasta {
-
-publishDir params.outdir, mode: 'copy', saveAs: {filename -> if (filename =~ /.*changes..*$/) "genomic_novel_changes/$filename"}
-input:
- set val(name), file(v_ref) from g_2_germlineFastaFile_g_116
-
-output:
- set val("v_ref"), file("new_V*")  into g_116_germlineFastaFile0_g_131, g_116_germlineFastaFile0_g111_22, g_116_germlineFastaFile0_g111_12
- file "*changes.*"  into g_116_csvFile1_g_124
-
-
-script:
-
-readArray_v_ref = v_ref.toString().split(' ')[0]
-
-if(readArray_v_ref.endsWith("fasta")){
-
-"""
-#!/usr/bin/env python3 
-
-import pandas as pd
-from Bio.Seq import Seq
-from Bio.SeqRecord import SeqRecord
-from Bio import SeqIO
-from hashlib import sha256 
-
-
-def fasta_to_dataframe(file_path):
-    data = {'ID': [], 'Sequence': []}
-    with open(file_path, 'r') as file:
-        for record in SeqIO.parse(file, 'fasta'):
-            data['ID'].append(record.id)
-            data['Sequence'].append(str(record.seq))
-
-        df = pd.DataFrame(data)
-        return df
-
-
-file_path = '${readArray_v_ref}'  # Replace with the actual path
-df = fasta_to_dataframe(file_path)
-
-index_counter = 30  # Start index
-
-for index, row in df.iterrows():
-    if '_' in row['ID']:
-        print(row['ID'])
-        parts = row['ID'].split('*')
-        row['ID'] = f"{parts[0]}*{index_counter}"
-        # df.at[index, 'ID'] = row['ID']  # Update DataFrame with the new value
-        index_counter += 1
-        
-        
-        
-def dataframe_to_fasta(df, output_file, description_column='Description', default_description=''):
-    records = []
-
-    for index, row in df.iterrows():
-        sequence_record = SeqRecord(Seq(row['Sequence']), id=row['ID'])
-
-        # Use the description from the DataFrame if available, otherwise use the default
-        description = row.get(description_column, default_description)
-        sequence_record.description = description
-
-        records.append(sequence_record)
-
-    with open(output_file, 'w') as output_handle:
-        SeqIO.write(records, output_handle, 'fasta')
-
-def save_changes_to_csv(old_df, new_df, output_file):
-    changes = []
-    for index, (old_row, new_row) in enumerate(zip(old_df.itertuples(), new_df.itertuples()), 1):
-        if old_row.ID != new_row.ID:
-            changes.append({'Row': index, 'Old_ID': old_row.ID, 'New_ID': new_row.ID})
-    
-    changes_df = pd.DataFrame(changes)
-    if not changes_df.empty:
-        changes_df.to_csv(output_file, index=False)
-    else:
-    	df = pd.DataFrame(list())
-    	df.to_csv('v_changes.txt')
-    	
-output_file_path = 'new_V.fasta'
-
-dataframe_to_fasta(df, output_file_path)
-
-
-file_path = '${readArray_v_ref}'  # Replace with the actual path
-old_df = fasta_to_dataframe(file_path)
-
-output_csv_file = "v_changes.csv"
-save_changes_to_csv(old_df, df, output_csv_file)
-
-"""
-} else{
-	
-"""
-#!/usr/bin/env python3 
-	
-
-file_path = 'new_V.txt'
-
-with open(file_path, 'w'):
-    pass
-    
-"""    
-}    
-}
-
-
-process make_igblast_annotate_j {
-
-input:
- set val(db_name), file(germlineFile) from g_120_germlineFastaFile0_g_114
-
-output:
- file aux_file  into g_114_outputFileTxt0_g111_9, g_114_outputFileTxt0_g126_9
-
-script:
-
-
-
-aux_file = "J.aux"
-
-"""
-annotate_j ${germlineFile} ${aux_file}
-"""
-}
-
-
 process Second_Alignment_D_MakeBlastDb {
 
 input:
@@ -452,31 +527,6 @@ if(germlineFile.getName().endsWith("fasta")){
 }
 
 
-process Second_Alignment_J_MakeBlastDb {
-
-input:
- set val(db_name), file(germlineFile) from g_120_germlineFastaFile0_g126_17
-
-output:
- file "${db_name}"  into g126_17_germlineDb0_g126_9
-
-script:
-
-if(germlineFile.getName().endsWith("fasta")){
-	"""
-	sed -e '/^>/! s/[.]//g' ${germlineFile} > tmp_germline.fasta
-	mkdir -m777 ${db_name}
-	makeblastdb -parse_seqids -dbtype nucl -in tmp_germline.fasta -out ${db_name}/${db_name}
-	"""
-}else{
-	"""
-	echo something if off
-	"""
-}
-
-}
-
-
 process First_Alignment_D_MakeBlastDb {
 
 input:
@@ -484,56 +534,6 @@ input:
 
 output:
  file "${db_name}"  into g111_16_germlineDb0_g111_9
-
-script:
-
-if(germlineFile.getName().endsWith("fasta")){
-	"""
-	sed -e '/^>/! s/[.]//g' ${germlineFile} > tmp_germline.fasta
-	mkdir -m777 ${db_name}
-	makeblastdb -parse_seqids -dbtype nucl -in tmp_germline.fasta -out ${db_name}/${db_name}
-	"""
-}else{
-	"""
-	echo something if off
-	"""
-}
-
-}
-
-
-process First_Alignment_J_MakeBlastDb {
-
-input:
- set val(db_name), file(germlineFile) from g_120_germlineFastaFile0_g111_17
-
-output:
- file "${db_name}"  into g111_17_germlineDb0_g111_9
-
-script:
-
-if(germlineFile.getName().endsWith("fasta")){
-	"""
-	sed -e '/^>/! s/[.]//g' ${germlineFile} > tmp_germline.fasta
-	mkdir -m777 ${db_name}
-	makeblastdb -parse_seqids -dbtype nucl -in tmp_germline.fasta -out ${db_name}/${db_name}
-	"""
-}else{
-	"""
-	echo something if off
-	"""
-}
-
-}
-
-
-process First_Alignment_V_MakeBlastDb {
-
-input:
- set val(db_name), file(germlineFile) from g_116_germlineFastaFile0_g111_22
-
-output:
- file "${db_name}"  into g111_22_germlineDb0_g111_9
 
 script:
 
@@ -1441,112 +1441,85 @@ outname_selected = airrFile.toString() - '.tsv' +"_to_piglet"
 #!/usr/bin/env Rscript
 
 library(data.table)
-library(alakazam)
-library(ggplot2)
-library(dplyr)
-library(parallel)
-library(pbapply)
 library(stringr)
+library(tigger)
 
-sample <- strsplit(basename("${airrFile}"), "[.]")[[1]][1]
+# Read inputs
+airr_file <- "${airrFile}"
+chain <- "${chain}"
+outname <- "${outname}"
+outname_selected <- "${outname_selected}"
+sample <- strsplit(basename(airr_file), "[.]")[[1]][1]
 
-select_columns <- if ("${chain}" == "IGH") c("sequence_id", "v_call", "d_call", "j_call") else c("sequence_id", "v_call", "j_call")
-data <- data.table::fread("${airrFile}", data.table = F)
-
-# Load V change file
-change_file <- "v_changes.csv"
-
-# Convert to data.table
+# Read AIRR data and convert to data.table
+data <- fread(airr_file)
 setDT(data)
 
-# Add new columns to data
+# Create mutable fields
 data[, `:=`(
   v_call_changed = v_call,
-  d_call_changed = d_call,
+  d_call_changed = if ("d_call" %in% names(data)) d_call else NA,
   j_call_changed = j_call
 )]
 
-reference = tigger::readIgFasta("${reference}")
-reference = data.table(allele = names(reference), sequence = reference, allele_changed = names(reference))
+# Load reference
+reference <- readIgFasta("${reference}")
+reference <- data.table(
+  allele = names(reference),
+  sequence = reference,
+  allele_changed = names(reference)
+)
 
-
-if (file.exists(change_file)) {
-	changes <- read.csv(change_file, header = FALSE, col.names = c("row", "old_id", "new_id"))
-	# Apply changes to v_call
-	for (change in 1:nrow(changes)) {
-	  old_id <- changes[change, "old_id"]
-	  new_id <- changes[change, "new_id"]
-	  data[str_detect(v_call, fixed(new_id)), v_call_changed := old_id]
-	  reference[str_detect(allele, fixed(new_id)), allele_changed := old_id]
-	}
-	data[["v_call"]] <- data[["v_call_changed"]]
-} else {
-  message("Change file does not exist. No changes applied to v_call.")
+replace_exact <- function(dt, col, id_from, id_to) {
+  pattern <- sprintf("(?<=^|,)(%s)(?=,|$)", str_replace_all(id_from, "([*+?.^$(){}|\\[\\]\\\\])", "\\\\\\1"))
+  dt[grepl(pattern, get(col)), (col) := str_replace_all(get(col), pattern, id_to)]
 }
 
-if (file.exists("changes.csv")) {
-	data[, `:=`(
-	  v_call_changed = v_call,
-	  d_call_changed = d_call,
-	  j_call_changed = j_call
-	)]
-	# Apply changes to v_call
-	change_file <- "changes.csv"
-    changes <- read.csv(change_file, header = FALSE, col.names = c("row", "old_id", "new_id"))
-	for (change in 1:nrow(changes)) {
-	  old_id <- changes[change, "old_id"]
-	  new_id <- changes[change, "new_id"]
-	  data[str_detect(v_call, fixed(new_id)), v_call_changed := old_id]
-	  reference[str_detect(allele, fixed(new_id)), allele_changed := old_id]
-	}
-	data[["v_call"]] <- data[["v_call_changed"]]
-} else {
-  message("Change file does not exist. No changes applied to v_call.")
-}
-
-# Apply changes to d_call if chain is IGH
-if ("${chain}" == "IGH") {
-  change_file <- "d_changes.csv"
-  if (file.exists(change_file)) {
-	  changes <- read.csv(change_file, header = FALSE, col.names = c("row", "old_id", "new_id"))
-	  for (change in 1:nrow(changes)) {
-	    old_id <- changes[change, "old_id"]
-	    new_id <- changes[change, "new_id"]
-	    data[, d_call_changed := str_replace_all(d_call_changed, fixed(new_id), old_id)]
-	    reference[str_detect(allele, fixed(new_id)), allele_changed := old_id]
-	  }
-	  data[["d_call"]] <- data[["d_call_changed"]]
-	} else {
-	  message("Change file does not exist. No changes applied to d_call.")
-	}
-}
-
-change_file <- "j_changes.csv"
-# Apply changes to j_call
-if (file.exists(change_file)) {
-  changes <- read.csv(change_file, header = FALSE, col.names = c("row", "old_id", "new_id"))
-  for (change in 1:nrow(changes)) {
-    old_id <- changes[change, "old_id"]
-    new_id <- changes[change, "new_id"]
-    data[, j_call_changed := str_replace_all(j_call_changed, fixed(new_id), old_id)]
-    reference[str_detect(allele, fixed(new_id)), allele_changed := old_id]
+# Apply changes for a given file and target column
+apply_changes <- function(file, dt, col, ref_col = "allele", ref_out_col = "allele_changed", reverse = FALSE) {
+  if (!file.exists(file)) {
+    message(sprintf("File %s not found. Skipping.", file))
+    return()
   }
-  data[["j_call"]] <- data[["j_call_changed"]]
-} else {
-  message("Change file does not exist. No changes applied to j_call.")
+  changes <- fread(file, header = FALSE, col.names = c("row", "old_id", "new_id"))
+  for (i in 1:nrow(changes)) {
+    from <- if (reverse) changes[i, new_id] else changes[i, old_id]
+    to   <- if (reverse) changes[i, old_id] else changes[i, new_id]
+    replace_exact(dt, col, from, to)
+    replace_exact(reference, ref_col, from, to)
+    if (ref_out_col != ref_col) replace_exact(reference, ref_out_col, from, to)
+  }
 }
 
-# Write the full output file
-write.table(data, sep = "\t", file = paste0("${outname}", ".tsv"), row.names = FALSE)
+# V call changes
+apply_changes("v_changes.csv", data, "v_call_changed")
+data[, v_call := v_call_changed]
 
-# Write the selected columns output
-select_columns <- if ("${chain}" == "IGH") c("sequence_id", "v_call", "d_call", "j_call") else c("sequence_id", "v_call", "j_call")
-setDT(data)
-data_selected <- data[, .SD, .SDcols = select_columns]
-write.table(data_selected, sep = "\t", file = paste0("${outname_selected}", ".tsv"), row.names = FALSE)
+# Reverse V call changes
+apply_changes("changes.csv", data, "v_call_changed", reverse = TRUE)
+data[, v_call := v_call_changed]
 
-# write the reference
-write.table(reference, sep = "\t", file = paste0("${outname}_reference", ".tsv"), row.names = FALSE)
+# D call (only for IGH)
+if (chain == "IGH") {
+  apply_changes("d_changes.csv", data, "d_call_changed")
+  data[, d_call := d_call_changed]
+}
+
+# J call
+apply_changes("j_changes.csv", data, "j_call_changed")
+data[, j_call := j_call_changed]
+
+# Final outputs
+write.table(data, sep = "\t", file = paste0(outname, ".tsv"), row.names = FALSE)
+
+selected_cols <- if (chain == "IGH") {
+  c("sequence_id", "v_call", "d_call", "j_call")
+} else {
+  c("sequence_id", "v_call", "j_call")
+}
+fwrite(data[, ..selected_cols], sep = "\t", file = paste0(outname_selected, ".tsv"))
+
+fwrite(reference, sep = "\t", file = paste0(outname, "_reference.tsv"))
 """
 
 }
