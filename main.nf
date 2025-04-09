@@ -1482,7 +1482,7 @@ replace_exact <- function(dt, col, id_from, id_to) {
 }
 
 # Apply changes for a given file and target column
-apply_changes <- function(file, dt, col, ref_col = "allele", ref_out_col = "allele_changed", reverse = FALSE) {
+apply_changes <- function(file, dt, col, ref_col = "allele", ref_out_col = "allele_changed", reverse = TRUE) {
   if (!file.exists(file)) {
     message(sprintf("File %s not found. Skipping.", file))
     return()
@@ -1504,7 +1504,7 @@ apply_changes("v_changes.csv", data, "v_call_changed")
 data[, v_call := v_call_changed]
 
 # Reverse V call changes
-apply_changes("changes.csv", data, "v_call_changed", reverse = TRUE)
+apply_changes("changes.csv", data, "v_call_changed")
 data[, v_call := v_call_changed]
 
 # D call (only for IGH)
