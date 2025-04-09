@@ -1525,6 +1525,21 @@ if (file.exists("changes.csv") & file.exists("v_changes.csv")) {
 apply_changes("changes_corrected.csv", data, "v_call_changed")
 data[, v_call := v_call_changed]
 
+# replace novel that have not changed
+if (file.exists(change_file)) {
+	changes <- read.csv(change_file, header = FALSE, col.names = c("row", "old_id", "new_id"))
+	# Apply changes to v_call
+	for (change in 1:nrow(changes)) {
+	  old_id <- changes[change, "old_id"]
+	  new_id <- changes[change, "new_id"]
+	  data[str_detect(v_call, fixed(new_id)), v_call_changed := str_replace(v_call, fixed(new_id), old_id)]
+	  reference[str_detect(allele, fixed(new_id)), allele_changed := str_replace(allele, fixed(new_id), old_id)]
+	}
+	data[["v_call"]] <- data[["v_call_changed"]]
+} else {
+  message("Change file does not exist. No changes applied to v_call.")
+}
+
 # D call (only for IGH)
 if (chain == "IGH") {
   apply_changes("d_changes.csv", data, "d_call_changed")
