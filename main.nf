@@ -1526,8 +1526,8 @@ apply_changes("changes_corrected.csv", data, "v_call_changed")
 data[, v_call := v_call_changed]
 
 # replace novel that have not changed
-if (file.exists(change_file)) {
-	changes <- read.csv(change_file, header = FALSE, col.names = c("row", "old_id", "new_id"))
+if (file.exists("changes.csv")) {
+	changes <- read.csv("changes.csv", header = FALSE, col.names = c("row", "old_id", "new_id"))
 	# Apply changes to v_call
 	for (change in 1:nrow(changes)) {
 	  old_id <- changes[change, "old_id"]
