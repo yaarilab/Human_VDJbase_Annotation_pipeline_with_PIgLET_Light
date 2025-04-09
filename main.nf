@@ -1503,8 +1503,26 @@ apply_changes <- function(file, dt, col, ref_col = "allele", ref_out_col = "alle
 apply_changes("v_changes.csv", data, "v_call_changed")
 data[, v_call := v_call_changed]
 
+# if changes.csv exists. change the base allele in Old_ID.
+
+if (file.exists("changes.csv") & file.exists("v_changes.csv")) {
+	changes <- fread("v_changes.csv", header = FALSE, col.names = c("row", "old_id", "new_id"))
+    changes_novel <- fread("changes.csv", header = FALSE, col.names = c("row", "old_id", "new_id"))
+    
+    for(i in 1:nrow(changes_novel)){
+    	a = changes_novel[['old_id']][i]
+    	a_base <- strsplit(a,"_")[[1]][1]
+    	old_id <- changes[["old_id"]][changes[['new_id']]==a_base]
+    	if(length(old_id)!=0){
+    		changes_novel[['old_id']][i] <- gsub(a_base,old_id,a,fixed=T)
+    	}
+    	
+    }
+    fwrite(changes_novel, file = "changes_corrected.csv", sep = ",")
+}
+  
 # Reverse V call changes
-apply_changes("changes.csv", data, "v_call_changed")
+apply_changes("changes_corrected.csv", data, "v_call_changed")
 data[, v_call := v_call_changed]
 
 # D call (only for IGH)
